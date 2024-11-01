@@ -5,6 +5,7 @@ import 'package:bloc/bloc.dart';
 
 import 'computation_event.dart';
 import 'computation_state.dart';
+import 'isolate_tasks.dart';
 
 class ComputationBloc extends Bloc<ComputationEvent, ComputationState> {
   final factorialPort = ReceivePort();
@@ -24,7 +25,7 @@ class ComputationBloc extends Bloc<ComputationEvent, ComputationState> {
       },
     );
     fibonacciPort.listen(
-          (result) {
+      (result) {
         emit(ComputationState.loaded('Fibonacci Check', result.toString()));
       },
     );
@@ -37,7 +38,7 @@ class ComputationBloc extends Bloc<ComputationEvent, ComputationState> {
       StartFactorial event, Emitter<ComputationState> emit) async {
     emit(const ComputationState.loading('Factorial Calculation'));
     try {
-      await Isolate.spawn(_factorialTask, factorialPort.sendPort);
+      await Isolate.spawn(factorialTask, factorialPort.sendPort);
     } catch (e) {
       emit(ComputationState.error('Factorial Calculation', e.toString()));
     }
@@ -47,7 +48,7 @@ class ComputationBloc extends Bloc<ComputationEvent, ComputationState> {
       StartPrimeCheck event, Emitter<ComputationState> emit) async {
     emit(const ComputationState.loading('Prime Check'));
     try {
-      await Isolate.spawn(_primeTask, primePort.sendPort);
+      await Isolate.spawn(primeTask, primePort.sendPort);
     } catch (e) {
       emit(ComputationState.error('Prime Check', e.toString()));
     }
@@ -57,58 +58,9 @@ class ComputationBloc extends Bloc<ComputationEvent, ComputationState> {
       StartFibonacci event, Emitter<ComputationState> emit) async {
     emit(const ComputationState.loading('Fibonacci Calculation'));
     try {
-      await Isolate.spawn(_fibonacciTask, fibonacciPort.sendPort);
+      await Isolate.spawn(fibonacciTask, fibonacciPort.sendPort);
     } catch (e) {
       emit(ComputationState.error('Fibonacci Calculation', e.toString()));
-    }
-  }
-
-  static void _factorialTask(SendPort sendPort) {
-    try {
-      int n = 20;
-      int result = 1;
-      for (int i = 1; i <= n; i++) {
-        result *= i;
-      }
-      sendPort.send(result);
-    } catch (e) {
-      sendPort.send('Error: ${e.toString()}');
-    }
-  }
-
-  static void _primeTask(SendPort sendPort) {
-    try {
-      int count = 0;
-      for (int i = 2; i < 100000; i++) {
-        if (_isPrime(i)) count++;
-      }
-      sendPort.send(count);
-    } catch (e) {
-      sendPort.send('Error: ${e.toString()}');
-    }
-  }
-
-  static bool _isPrime(int n) {
-    if (n <= 1) return false;
-    for (int i = 2; i <= n ~/ 2; i++) {
-      if (n % i == 0) return false;
-    }
-    return true;
-  }
-
-  static void _fibonacciTask(SendPort sendPort) {
-    try {
-      int n = 30;
-      int a = 0, b = 1, sum = 0;
-      for (int i = 0; i < n; i++) {
-        int temp = a + b;
-        a = b;
-        b = temp;
-        sum += temp;
-      }
-      sendPort.send(sum);
-    } catch (e) {
-      sendPort.send('Error: ${e.toString()}');
     }
   }
 }
